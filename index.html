@@ -7,6 +7,12 @@
 <title>BET APP</title>
 
 <style>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
+
 body {
   font-family: Arial, sans-serif;
   background: #111;
