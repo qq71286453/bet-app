@@ -1,191 +1,277 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>下注紀錄系統</title>
+<title>歡喜大發財計算機</title>
 
 <style>
+*{ box-sizing:border-box; }
 body{
-    font-family: Arial, sans-serif;
-    background:#111;
-    color:#fff;
-    text-align:center;
-    padding:20px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;
+    background:linear-gradient(135deg,#1e3c72,#2a5298);
+    margin:0;
+    padding:30px 15px;
 }
-
-input,button{
-    padding:8px;
-    margin:4px;
+.container{
+    max-width:1100px;
+    margin:auto;
+    display:flex;
+    gap:25px;
+    flex-wrap:wrap;
+    justify-content:center;
+}
+.card{
+    background:white;
+    border-radius:18px;
+    padding:25px;
+    box-shadow:0 15px 35px rgba(0,0,0,0.15);
+}
+.box{ width:420px; }
+.history{ width:450px; max-height:650px; overflow:auto; }
+.row{ margin-top:14px; }
+label{
+    font-size:14px;
+    font-weight:600;
+    margin-bottom:5px;
+    display:block;
+}
+input{
+    width:100%;
+    padding:10px;
     font-size:16px;
+    border-radius:10px;
+    border:1px solid #ddd;
 }
+input[readonly]{ background:#f7f7f7; }
 
 button{
+    border:none;
+    border-radius:12px;
+    padding:12px;
+    font-size:16px;
+    font-weight:bold;
     cursor:pointer;
 }
-
-.win-text{ color:#00ff88; }
-.lose-text{ color:#ff4d4d; }
-
-.profit-green{ color:#00ff88; }
-.profit-red{ color:#ff4d4d; }
-.profit-zero{ color:#ccc; }
-
-.rate-high{ color:#00ff88; }
-.rate-mid{ color:#ffaa00; }
-.rate-low{ color:#ff4d4d; }
-
-.record-item{
-    margin:4px 0;
+.btn-row{
+    display:flex;
+    gap:10px;
+    margin-top:15px;
+}
+.btn-win{ background:#28a745; color:white; flex:1; }
+.btn-lose{ background:#dc3545; color:white; flex:1; }
+.reset-btn{
+    margin-top:12px;
+    width:100%;
+    background:#f1f1f1;
 }
 
-.section{
-    margin-top:15px;
+.green{ background:#e6f7ed; }
+.yellow{ background:#fff8e1; }
+.red{ background:#fdecea; }
+
+.rate-green{ color:#28a745; font-weight:bold; }
+.rate-red{ color:#dc3545; font-weight:bold; }
+
+.profit-green{ color:#28a745; font-weight:bold; }
+.profit-red{ color:#dc3545; font-weight:bold; }
+.profit-zero{ color:#000; font-weight:bold; }
+
+.stat-box{
+    background:#f5f7fa;
+    padding:12px;
+    border-radius:12px;
+    font-weight:bold;
+    font-size:14px;
+    margin-bottom:15px;
+    line-height:1.6;
+}
+
+.record-item{
+    padding:8px 10px;
+    border-bottom:1px solid #eee;
+    font-size:14px;
+}
+.win-text{ color:#28a745; }
+.lose-text{ color:#dc3545; }
+
+@media(max-width:768px){
+    .box,.history{ width:100%; }
 }
 </style>
 </head>
 
 <body>
 
-<h2>下注紀錄系統</h2>
+<div class="container">
 
-<div class="section">
-本金：<input type="number" id="bankroll" value="1000">
+<div class="card box">
+<h2>歡喜大發財計算機</h2>
+
+<div class="row"><label>歷史高峰</label><input type="number" id="high"></div>
+<div class="row"><label>3/4 警戒線</label><input type="number" id="line34" readonly></div>
+<div class="row"><label>2/3 警戒線</label><input type="number" id="line23" readonly></div>
+<div class="row"><label>剩餘彩幣</label><input type="number" id="remain"></div>
+<div class="row"><label>一注金額</label><input type="number" id="bet"></div>
+<div class="row"><label>賠率</label><input type="number" id="odds" step="0.01"></div>
+
+<div class="btn-row">
+<button class="btn-win" onclick="settle(true,'normal')">勝</button>
+<button class="btn-lose" onclick="settle(false,'normal')">敗</button>
 </div>
 
-<div class="section">
-賠率：<input type="number" id="odds" value="2" step="0.01">
-下注%：<input type="number" id="betPercent" value="10">
-<button onclick="auto34()">3/4</button>
-<button onclick="auto23()">2/3</button>
+<div class="btn-row">
+<button class="btn-win" onclick="settle(true,'half')">加勝</button>
+<button class="btn-lose" onclick="settle(false,'half')">加敗</button>
 </div>
 
-<div class="section">
-<button onclick="settle(true,'normal')">勝</button>
-<button onclick="settle(false,'normal')">敗</button>
-<button onclick="settle(true,'half')">加勝</button>
-<button onclick="settle(false,'half')">加敗</button>
-<button onclick="settle(true,'cat')">貓勝</button>
-<button onclick="settle(false,'cat')">貓敗</button>
-<button onclick="undo()">Undo</button>
+<div class="btn-row">
+<button class="btn-win" onclick="settle(true,'cat')">貓勝</button>
+<button class="btn-lose" onclick="settle(false,'cat')">貓敗</button>
 </div>
 
-<div class="section" id="stats"></div>
+<button class="reset-btn" onclick="undoLast()">返回上一步</button>
+<button class="reset-btn" onclick="resetAll()">一鍵重置</button>
+</div>
 
-<div class="section">
-<h3>紀錄</h3>
-<div id="records"></div>
+<div class="card history">
+<h3>統計資訊</h3>
+<div class="stat-box" id="stats"></div>
+<h3>勝敗紀錄</h3>
+<div id="record"></div>
+</div>
+
 </div>
 
 <script>
 
-let historyData=[];
+let manualMode=false;
 let totalProfit=0;
 
-let winCount=0,loseCount=0;
-let halfWinCount=0,halfLoseCount=0;
-let catWinCount=0,catLoseCount=0;
+let winCount=0;
+let loseCount=0;
+let halfWinCount=0;
+let halfLoseCount=0;
+let catWinCount=0;
+let catLoseCount=0;
 
-const recordDiv=document.getElementById("records");
+let historyData=[];
+
+const highInput=document.getElementById("high");
+const remainInput=document.getElementById("remain");
+const betInput=document.getElementById("bet");
+const oddsInput=document.getElementById("odds");
+const recordDiv=document.getElementById("record");
 const statsDiv=document.getElementById("stats");
 
-function rateClass(rate){
-    if(rate>=55) return "rate-high";
-    if(rate>=50) return "rate-mid";
-    return "rate-low";
-}
+highInput.addEventListener("input",update);
+remainInput.addEventListener("input",()=>{manualMode=false;update();});
+betInput.addEventListener("input",()=>{manualMode=true;});
 
-function auto34(){
-    let odds=parseFloat(document.getElementById("odds").value);
-    if(!odds) return;
-    let percent=(0.75/(odds-1))*100;
-    document.getElementById("betPercent").value=percent.toFixed(2);
-}
+function update(){
+    let high=Number(highInput.value);
+    let remain=Number(remainInput.value);
+    if(high<=0) return;
 
-function auto23(){
-    let odds=parseFloat(document.getElementById("odds").value);
-    if(!odds) return;
-    let percent=(0.6667/(odds-1))*100;
-    document.getElementById("betPercent").value=percent.toFixed(2);
+    let line34=Math.round(high*0.75);
+    let line23=Math.round(high*2/3);
+
+    document.getElementById("line34").value=line34;
+    document.getElementById("line23").value=line23;
+
+    remainInput.classList.remove("green","yellow","red");
+
+    let autoBet=0;
+
+    if(remain>=line34){
+        remainInput.classList.add("green");
+        autoBet=remain*0.04;
+    }else if(remain>=line23){
+        remainInput.classList.add("yellow");
+        autoBet=remain*0.03;
+    }else{
+        remainInput.classList.add("red");
+        autoBet=remain*0.02;
+    }
+
+    if(!manualMode){
+        betInput.value=Math.round(autoBet);
+    }
+
+    saveData();
 }
 
 function settle(isWin,type){
 
-    let bankroll=parseFloat(document.getElementById("bankroll").value);
-    let odds=parseFloat(document.getElementById("odds").value);
-    let percent=parseFloat(document.getElementById("betPercent").value);
+    let remain=Number(remainInput.value);
+    let high=Number(highInput.value);
+    let bet=Number(betInput.value);
+    let odds=Number(oddsInput.value);
 
-    if(!bankroll || !odds || !percent) return;
+    let profit=isWin?bet*(odds-1):-bet;
+    profit=Math.round(profit);
 
-    let bet=bankroll*(percent/100);
-    let profit=0;
+    let prevRemain=remain;
+    let prevHigh=high;
 
-    if(isWin){
-        profit=bet*(odds-1);
-    }else{
-        profit=-bet;
+    remain=Math.round(remain+profit);
+
+    if(remain>high){
+        high=remain;
+        highInput.value=high;
     }
 
-    bankroll+=profit;
     totalProfit+=profit;
-
-    document.getElementById("bankroll").value=bankroll.toFixed(2);
-
-    // 統計
-    if(type==="normal"){
-        if(isWin) winCount++;
-        else loseCount++;
-    }
 
     if(type==="half"){
         if(isWin) halfWinCount++;
         else halfLoseCount++;
-    }
-
-    if(type==="cat"){
+    }else if(type==="cat"){
         if(isWin) catWinCount++;
         else catLoseCount++;
+    }else{
+        if(isWin) winCount++;
+        else loseCount++;
     }
 
-    historyData.push({
-        isWin,
-        type,
-        bet:bet.toFixed(2),
-        odds:odds.toFixed(2),
-        profit:profit.toFixed(2),
-        remain:bankroll.toFixed(2)
+    historyData.unshift({
+        type,isWin,bet,odds,profit,
+        prevRemain,prevHigh,remain
     });
 
+    remainInput.value=remain;
+
     render();
+    manualMode=false;
+    update();
 }
 
-function undo(){
-    if(historyData.length===0) return;
+function undoLast(){
+    if(historyData.length===0){ alert("沒有可返回的紀錄"); return; }
 
-    let last=historyData.pop();
-
-    let bankroll=parseFloat(document.getElementById("bankroll").value);
-    bankroll-=parseFloat(last.profit);
-    document.getElementById("bankroll").value=bankroll.toFixed(2);
-
-    totalProfit-=parseFloat(last.profit);
-
-    if(last.type==="normal"){
-        if(last.isWin) winCount--;
-        else loseCount--;
-    }
+    let last=historyData.shift();
+    totalProfit-=last.profit;
 
     if(last.type==="half"){
         if(last.isWin) halfWinCount--;
         else halfLoseCount--;
-    }
-
-    if(last.type==="cat"){
+    }else if(last.type==="cat"){
         if(last.isWin) catWinCount--;
         else catLoseCount--;
+    }else{
+        if(last.isWin) winCount--;
+        else loseCount--;
     }
 
+    remainInput.value=last.prevRemain;
+    highInput.value=last.prevHigh;
+
     render();
+    update();
+}
+
+function rateClass(rate){
+    return rate>=60 ? "rate-green" : "rate-red";
 }
 
 function render(){
@@ -200,27 +286,29 @@ function render(){
         if(r.type==="half") typeLabel="加";
         if(r.type==="cat") typeLabel="貓";
 
-        div.textContent=
-            typeLabel+
-            (r.isWin?"勝":"敗")+
-            " | 注:"+r.bet+
-            " | 賠:"+r.odds+
-            " | 損益:"+(r.profit>=0?"+":"")+r.profit+
-            " | 剩:"+r.remain;
+        let oddsFixed = Number(r.odds).toFixed(2);
+
+        div.textContent =
+            typeLabel +
+            (r.isWin ? "勝" : "敗") +
+            "|注碼:" + r.bet +
+            "|賠率:" + oddsFixed +
+            "|結果:" + (r.profit >= 0 ? "+" : "") + r.profit +
+            "|剩餘:" + r.remain;
 
         recordDiv.appendChild(div);
     });
 
-    let totalWins=winCount+halfWinCount+catWinCount;
-    let totalLoses=loseCount+halfLoseCount+catLoseCount;
-    let totalGames=totalWins+totalLoses;
-    let totalRate=totalGames>0?((totalWins/totalGames)*100).toFixed(1):0;
+    let totalWins = winCount + halfWinCount + catWinCount;
+    let totalLoses = loseCount + halfLoseCount + catLoseCount;
+    let totalGames = totalWins + totalLoses;
+    let totalRate = totalGames>0?((totalWins/totalGames)*100).toFixed(1):0;
 
-    let halfTotal=halfWinCount+halfLoseCount;
-    let halfRate=halfTotal>0?((halfWinCount/halfTotal)*100).toFixed(1):0;
+    let halfTotal = halfWinCount + halfLoseCount;
+    let halfRate = halfTotal>0?((halfWinCount/halfTotal)*100).toFixed(1):0;
 
-    let catTotal=catWinCount+catLoseCount;
-    let catRate=catTotal>0?((catWinCount/catTotal)*100).toFixed(1):0;
+    let catTotal = catWinCount + catLoseCount;
+    let catRate = catTotal>0?((catWinCount/catTotal)*100).toFixed(1):0;
 
     let profitClass="profit-zero";
     if(totalProfit>0) profitClass="profit-green";
@@ -239,41 +327,55 @@ function render(){
         " ｜ 貓勝："+catWinCount+
         " ｜ 貓敗："+catLoseCount+
         " ｜ 貓勝率：<span class='"+rateClass(Number(catRate))+"'>"+catRate+"%</span><br>"+
-        "總損益：<span class='"+profitClass+"'>"+totalProfit.toFixed(2)+"</span>";
+        "總損益：<span class='"+profitClass+"'>"+totalProfit+"</span>";
 
-    localStorage.setItem("betData",JSON.stringify({
-        historyData,totalProfit,
+    saveData();
+}
+
+function saveData(){
+    localStorage.setItem("betSystem",JSON.stringify({
+        high:highInput.value,
+        remain:remainInput.value,
+        bet:betInput.value,
+        odds:oddsInput.value,
+        totalProfit,
         winCount,loseCount,
         halfWinCount,halfLoseCount,
-        catWinCount,catLoseCount
+        catWinCount,catLoseCount,
+        historyData
     }));
 }
 
-function load(){
-    let data=localStorage.getItem("betData");
+function loadData(){
+    let data=localStorage.getItem("betSystem");
     if(!data) return;
-
     let obj=JSON.parse(data);
 
-    historyData=obj.historyData||[];
-    totalProfit=obj.totalProfit||0;
+    highInput.value=obj.high;
+    remainInput.value=obj.remain;
+    betInput.value=obj.bet;
+    oddsInput.value=obj.odds;
 
+    totalProfit=obj.totalProfit||0;
     winCount=obj.winCount||0;
     loseCount=obj.loseCount||0;
     halfWinCount=obj.halfWinCount||0;
     halfLoseCount=obj.halfLoseCount||0;
     catWinCount=obj.catWinCount||0;
     catLoseCount=obj.catLoseCount||0;
-
-    if(historyData.length>0){
-        let last=historyData[historyData.length-1];
-        document.getElementById("bankroll").value=last.remain;
-    }
+    historyData=obj.historyData||[];
 
     render();
+    update();
 }
 
-load();
+function resetAll(){
+    if(!confirm("確定要重置所有資料？")) return;
+    localStorage.removeItem("betSystem");
+    location.reload();
+}
+
+loadData();
 
 </script>
 </body>
